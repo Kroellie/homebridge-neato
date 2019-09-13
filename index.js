@@ -158,6 +158,7 @@ function NeatoVacuumRobotAccessory(robot, platform, boundary) {
         this.vacuumRobotCleanService = new Service.Switch("Clean", "clean");
         this.vacuumRobotGoToDockService = new Service.Switch(this.name + " Go to Dock", "goToDock");
         this.vacuumRobotDockStateService = new Service.OccupancySensor(this.name + " Dock", "dockState");
+        this.vacuumRobotDustbinService = new Service.OccupancySensor(this.name + " Dustbin", "isFull");
         this.vacuumRobotEcoService = new Service.Switch(this.name + " Eco Mode", "eco");
         this.vacuumRobotNoGoLinesService = new Service.Switch(this.name + " NoGo Lines", "noGoLines");
         this.vacuumRobotExtraCareService = new Service.Switch(this.name + " Extra Care", "extraCare");
@@ -217,6 +218,7 @@ NeatoVacuumRobotAccessory.prototype = {
 
             this.vacuumRobotGoToDockService.getCharacteristic(Characteristic.On).on('set', this.setGoToDock.bind(this));
             this.vacuumRobotGoToDockService.getCharacteristic(Characteristic.On).on('get', this.getGoToDock.bind(this));
+            this.vacuumRobotDustbinService.getCharacteristic(Characteristic.OccupancyDetected).on('get', this.getDustbinStatus.bind(this));
 
             this.vacuumRobotDockStateService.getCharacteristic(Characteristic.OccupancyDetected).on('get', this.getDock.bind(this));
 
@@ -233,6 +235,7 @@ NeatoVacuumRobotAccessory.prototype = {
             this.vacuumRobotScheduleService.getCharacteristic(Characteristic.On).on('get', this.getSchedule.bind(this));
 
             this.services.push(this.vacuumRobotCleanService);
+            this.services.push(this.vacuumRobotDustbinService);
 
             if (this.hiddenServices.indexOf('dock') === -1)
                 this.services.push(this.vacuumRobotGoToDockService);
@@ -463,6 +466,14 @@ NeatoVacuumRobotAccessory.prototype = {
         });
     },
 
+    getDustbinStatus: function (callback) {
+            let that = this;
+            this.updateRobot(function () {
+                    debug(that.name + ": Dustbin full: " + that.robot.isFull);
+                    callback(false, that.robot.isFull);
+            });
+    },
+    
     getBatteryChargingState: function (callback) {
         let that = this;
         this.updateRobot(function () {
@@ -508,6 +519,7 @@ NeatoVacuumRobotAccessory.prototype = {
 
                 // no commands here, values can be updated without problems
                 that.vacuumRobotDockStateService.setCharacteristic(Characteristic.OccupancyDetected, that.robot.isDocked ? 1 : 0);
+                that.vacuumRobotDustbinService.setCharacteristic(Characteristic.OccupancyDetected, that.robot.isFull ? 1 : 0);
                 that.vacuumRobotEcoService.setCharacteristic(Characteristic.On, that.robot.eco);
                 that.vacuumRobotNoGoLinesService.setCharacteristic(Characteristic.On, that.robot.noGoLines);
                 that.vacuumRobotExtraCareService.setCharacteristic(Characteristic.On, that.robot.navigationMode == 2 ? true : false);
